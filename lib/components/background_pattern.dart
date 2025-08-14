@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:task_manager/app/theme/app_colors.dart' as app_colors;
 
 class BackgroundPattern extends StatelessWidget {
   final Widget child;
@@ -19,7 +20,7 @@ class BackgroundPattern extends StatelessWidget {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Container(
-        color: Color(0xFFEBEDFD), // Set background color
+        color: app_colors.backgroundColor, // Set background color
         child: Column(
           children: [
             Container(
