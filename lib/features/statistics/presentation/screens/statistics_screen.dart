@@ -10,7 +10,7 @@ class StatisticsScreen extends StatelessWidget {
     return Scaffold(
       appBar: const CustomHeader(title: 'Statistics', showBackArrow: false),
       body: BackgroundPattern(
-        showBottomLinearGradient: false,
+        showBottomLinearGradient: true,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: const [
