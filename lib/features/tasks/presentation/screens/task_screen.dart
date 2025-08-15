@@ -8,7 +8,7 @@ import 'package:task_manager/features/tasks/domain/task_repo.dart';
 import 'package:task_manager/features/tasks/presentation/cubit/task_cubit.dart';
 import 'package:task_manager/features/tasks/presentation/cubit/task_state.dart'
     show TaskState, TaskLoading, TaskInitial, TaskError, TaskSubmitting, TaskLoaded;
-import 'package:task_manager/features/tasks/presentation/screens/add_task_sheet.dart';
+import 'package:task_manager/features/tasks/presentation/widgets/add_task_sheet.dart';
 import 'package:task_manager/features/tasks/presentation/widgets/task_card.dart' show TaskCard;
 import 'package:task_manager/features/tasks/presentation/widgets/task_section.dart';
 import 'package:task_manager/app/theme/app_colors.dart' as app_colors;
