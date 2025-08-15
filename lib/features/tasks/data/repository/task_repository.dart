@@ -15,7 +15,7 @@ class HiveTaskRepository implements HiveTaskRepo {
   @override
   Future<List<Task>> getAll({bool includeCompleted = true}) async {
     final items = _box.values
-        .map((m) => Task.fromMap(m))
+        .map((m) => Task.fromMap(m.cast<String, Object?>()))
         .where((t) => includeCompleted || t.status != TaskStatus.completed)
         .toList();
     return items;
@@ -46,7 +46,7 @@ class HiveTaskRepository implements HiveTaskRepo {
     await _box.put(task.id, task.toMap());
     // ignore: avoid_print
     print(
-      'Updated task ${task.id} | ${task.title} | status=${task.status} | desc=${task.description} | deadline=${task.deadline.toIso8601String()}',
+      'Updated task ${task.id} | ${task.title} | status=${task.status} | desc=${task.description} | deadline=${task.deadline.toIso8601String()} | completedDate=${task.completedDate?.toIso8601String()}',
     );
     return task;
   }

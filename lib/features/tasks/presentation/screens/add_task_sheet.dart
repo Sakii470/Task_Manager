@@ -132,7 +132,7 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
     final isEditing = widget.initialTask != null;
     // removed local fieldBorder/focusedBorder/label styles (moved into reusable widget)
     return Material(
-      color: theme.colorScheme.surface,
+      color: app_colors.white,
       elevation: 8,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       child: SafeArea(

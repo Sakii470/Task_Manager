@@ -10,10 +10,19 @@ import 'package:task_manager/features/tasks/presentation/cubit/task_state.dart'
     show TaskState, TaskLoading, TaskInitial, TaskError, TaskSubmitting, TaskLoaded;
 import 'package:task_manager/features/tasks/presentation/screens/add_task_sheet.dart';
 import 'package:task_manager/features/tasks/presentation/widgets/task_card.dart' show TaskCard;
+import 'package:task_manager/features/tasks/presentation/widgets/task_section.dart';
 import 'package:task_manager/app/theme/app_colors.dart' as app_colors;
 
-class TaskScreen extends StatelessWidget {
+class TaskScreen extends StatefulWidget {
   const TaskScreen({Key? key}) : super(key: key);
+
+  @override
+  State<TaskScreen> createState() => _TaskScreenState();
+}
+
+class _TaskScreenState extends State<TaskScreen> {
+  bool showActiveTasks = true;
+  bool showDoneTasks = true;
 
   void _openAddTaskPopup(BuildContext context, {Task? task}) async {
     final saved = await showModalBottomSheet<bool>(
@@ -62,16 +71,66 @@ class TaskScreen extends StatelessWidget {
                         : state is TaskSubmitting
                         ? state.tasks
                         : <Task>[];
+
+                    // Split tasks into active and done (tolerant check so enum or string works)
+                    final doneTasks =
+                        tasks.where((t) {
+                            final s = t.status?.toString().toLowerCase() ?? '';
+                            return s.contains('completed');
+                          }).toList()
+                          // sort by completedDate desc (tasks completed most recently appear first)
+                          ..sort((a, b) {
+                            final ad = a.completedDate;
+                            final bd = b.completedDate;
+                            if (ad == null && bd == null) return 0;
+                            if (ad == null) return 1; // push nulls to the end
+                            if (bd == null) return -1;
+                            return bd.compareTo(ad); // newer (closer to now) first
+                          });
+                    final activeTasks = tasks.where((t) {
+                      final s = t.status?.toString().toLowerCase() ?? '';
+                      return !s.contains('completed');
+                    }).toList();
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.max, // fill vertical
                       children: [
+                        // Use a single scrollable area that contains both sections
                         Expanded(
-                          child: ListView.builder(
-                            itemCount: tasks.length,
-                            itemBuilder: (_, i) => TaskCard(
-                              task: tasks[i],
-                              onEdit: () => _openAddTaskPopup(context, task: tasks[i]),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                const SizedBox(height: 8),
+
+                                TaskSection(
+                                  title: 'Active tasks',
+                                  color: app_colors.blue1,
+                                  tasks: activeTasks,
+                                  expanded: showActiveTasks,
+                                  onToggle: () => setState(() => showActiveTasks = !showActiveTasks),
+                                  itemBuilder: (t) => TaskCard(
+                                    task: t,
+                                    onEdit: () => _openAddTaskPopup(context, task: t),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+
+                                TaskSection(
+                                  title: 'Done tasks',
+                                  color: app_colors.green1,
+                                  tasks: doneTasks,
+                                  expanded: showDoneTasks,
+                                  onToggle: () => setState(() => showDoneTasks = !showDoneTasks),
+                                  itemBuilder: (t) => TaskCard(
+                                    task: t,
+                                    onEdit: () => _openAddTaskPopup(context, task: t),
+                                    //onMarkDone: null,
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                              ],
                             ),
                           ),
                         ),

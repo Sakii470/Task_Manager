@@ -3,6 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:task_manager/app/theme/app_colors.dart' as app_colors;
 import 'package:task_manager/features/tasks/data/model/task.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:task_manager/features/tasks/presentation/cubit/task_cubit.dart';
+import 'package:task_manager/features/tasks/presentation/widgets/task_done_button.dart'; // added import
 
 class TaskCard extends StatelessWidget {
   final Task task;
@@ -33,19 +36,21 @@ class TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labelColor = _deadlineLabelColor(task.deadline);
-    final deadlineText = _deadlineLabel(task.deadline);
+    final labelColor = task.completedDate != null ? app_colors.green1 : _deadlineLabelColor(task.deadline);
+    final deadlineText = task.completedDate != null
+        ? 'Done: ${_formatDeadline(task.completedDate!)}'
+        : _deadlineLabel(task.deadline);
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
         color: app_colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border(left: BorderSide(color: labelColor, width: 6)),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 6, offset: const Offset(0, 2))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header stripe
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -53,7 +58,7 @@ class TaskCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 decoration: BoxDecoration(
                   color: labelColor,
-                  borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomRight: Radius.circular(12)),
+                  borderRadius: const BorderRadius.only(topLeft: Radius.circular(6), bottomRight: Radius.circular(12)),
                 ),
                 child: Text(
                   deadlineText,
@@ -80,27 +85,36 @@ class TaskCard extends StatelessWidget {
           ),
           // Body
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12, top: 18), // adjusted padding
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  "Task: ${task.title}",
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
-                    letterSpacing: 0,
-                    height: 1.1, // tighter line height
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        "Task: ${task.title}",
+                        maxLines: 5,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black),
+                      ),
+                    ),
+                    // Only show "Task Done" button for tasks that are not completed
+                    if (task.completedDate == null) ...[
+                      const SizedBox(width: 24),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 0), // nudge button up/down as needed
+                        child: TaskDoneButton(onPressed: () => context.read<TaskCubit>().markTaskDone(task)),
+                      ),
+                    ],
+                  ],
                 ),
                 if (task.description != null && task.description!.trim().isNotEmpty) ...[
-                  const SizedBox(height: 4), // reduced from 6
+                  const SizedBox(height: 4),
                   Text(
                     task.description!.trim(),
-                    maxLines: 3,
+                    maxLines: 6,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 14,

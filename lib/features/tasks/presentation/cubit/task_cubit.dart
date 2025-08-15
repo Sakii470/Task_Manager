@@ -63,6 +63,12 @@ class TaskCubit extends Cubit<TaskState> {
     );
   }
 
+  // New: mark task as done (set status to completed and completedDate = now)
+  Future<void> markTaskDone(Task task) async {
+    final updated = task.copyWith(status: TaskStatus.completed, completedDate: DateTime.now());
+    return updateTask(updated);
+  }
+
   Future<void> deleteTask(String id) async {
     return _mutation(
       optimisticTransform: (list) => [
