@@ -1,52 +1,85 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:task_manager/components/custom_header.dart';
 import 'package:task_manager/components/background_pattern.dart';
+import 'package:task_manager/features/statistics/presentation/widgets/stat_card.dart';
+import 'package:task_manager/features/statistics/presentation/cubit/statisctics_cubit.dart';
+import 'package:task_manager/features/tasks/domain/task_repo.dart';
+import 'package:task_manager/features/tasks/data/model/task.dart'; // added
+import 'package:task_manager/features/statistics/presentation/widgets/week_bar_chart.dart'; // added
+import 'package:task_manager/app/theme/app_colors.dart' as app_colors; // added
 
 class StatisticsScreen extends StatelessWidget {
   const StatisticsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const CustomHeader(title: 'Statistics', showBackArrow: false),
-      body: BackgroundPattern(
-        showBottomLinearGradient: true,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: const [
-            _StatCard(title: 'Completed Tasks', value: '42'),
-            SizedBox(height: 12),
-            _StatCard(title: 'Pending Tasks', value: '7'),
-            SizedBox(height: 12),
-            _StatCard(title: 'Completion Rate', value: '86%'),
-          ],
+    // resolve concrete repo from GetIt if not provided
+    final taskRepo = GetIt.instance<HiveTaskRepo>();
+
+    return BlocProvider(
+      create: (_) => StatiscticsCubit(taskRepo)..loadStatistics(),
+      child: Scaffold(
+        appBar: const CustomHeader(title: 'Statistics', showBackArrow: false),
+        body: BackgroundPattern(
+          showBottomLinearGradient: true,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: BlocBuilder<StatiscticsCubit, StatiscticsState>(
+              builder: (context, state) {
+                // initial / loading
+                if (state is StatiscticsLoading || state is StatiscticsInitial) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                // error
+                if (state is StatiscticsError) {
+                  return Center(child: Text(state.message));
+                }
+                // loaded
+                if (state is StatiscticsLoaded) {
+                  return ListView(
+                    children: [
+                      StatCard(title: 'Completed Tasks', value: '${state.completed}'),
+                      const SizedBox(height: 12),
+                      // New: weekly completed tasks bar chart below the completed card
+                      FutureBuilder<List<Task>>(
+                        future: taskRepo.getAll(includeCompleted: true),
+                        builder: (context, snap) {
+                          if (snap.connectionState != ConnectionState.done) {
+                            return const SizedBox(height: 140, child: Center(child: CircularProgressIndicator()));
+                          }
+                          if (snap.hasError) {
+                            return SizedBox(height: 140, child: Center(child: Text('Error: ${snap.error}')));
+                          }
+                          final allTasks = snap.data ?? <Task>[];
+                          final weekCounts = _computeWeeklyCounts(allTasks);
+                          return WeekBarChart(counts: weekCounts);
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  );
+                }
+                // fallback
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
         ),
       ),
     );
   }
-}
 
-class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-  const _StatCard({required this.title, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
-      ),
-      child: Row(
-        children: [
-          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
+  List<int> _computeWeeklyCounts(List<Task> tasks) {
+    final counts = List<int>.filled(7, 0);
+    for (final t in tasks) {
+      final isCompleted = t.isCompleted;
+      if (!isCompleted) continue;
+      final dt = t.completedDate ?? DateTime.now();
+      final idx = (dt.weekday - 1).clamp(0, 6);
+      counts[idx] = counts[idx] + 1;
+    }
+    return counts;
   }
 }

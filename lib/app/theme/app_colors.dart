@@ -12,3 +12,4 @@ const Color orange1 = Color(0xFFF76E11);
 const Color gray1 = Color(0xFF666666);
 const Color gray2 = Color(0xFFB3B3B3);
 const Color green1 = Color(0xFF2CBB57);
+const Color green2 = Color(0xFFeeffe6);
