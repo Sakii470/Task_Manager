@@ -9,84 +9,67 @@ class TaskCubit extends Cubit<TaskState> {
   final HiveTaskRepo repo;
   TaskCubit(this.repo) : super(const TaskInitial());
 
+  // ---- Helpers added ----
+  List<Task> get _currentTasks {
+    final s = state;
+    if (s is TaskLoaded) return s.tasks;
+    if (s is TaskSubmitting) return s.tasks;
+    return const [];
+  }
+
+  List<Task> _sorted(Iterable<Task> tasks) {
+    final list = [...tasks];
+    list.sort((a, b) => a.deadline.compareTo(b.deadline));
+    return list;
+  }
+
+  Future<void> _mutation({
+    required List<Task> Function(List<Task>) optimisticTransform,
+    required Future<void> Function() action,
+  }) async {
+    final optimistic = _sorted(optimisticTransform(_currentTasks));
+    emit(TaskSubmitting(optimistic));
+    try {
+      await action();
+      // Always refetch for canonical state (keeps logic simple; can be optimized later)
+      emit(TaskLoaded(_sorted(await repo.getAll())));
+    } catch (e) {
+      emit(TaskError(e.toString()));
+    }
+  }
+  // ---- End helpers ----
+
   Future<void> loadTasks() async {
     emit(const TaskLoading());
     try {
-      final tasks = [...await repo.getAll()]..sort((a, b) => a.deadline.compareTo(b.deadline));
-      emit(TaskLoaded(tasks));
+      emit(TaskLoaded(_sorted(await repo.getAll())));
     } catch (e) {
       emit(TaskError(e.toString()));
     }
   }
 
   Future<void> addTask(Task task) async {
-    final prev = state is TaskLoaded
-        ? (state as TaskLoaded).tasks
-        : state is TaskSubmitting
-        ? (state as TaskSubmitting).tasks
-        : <Task>[];
-    final submittingList = [...prev]..sort((a, b) => a.deadline.compareTo(b.deadline));
-    emit(TaskSubmitting(submittingList));
-    try {
-      await repo.create(task);
-      final tasks = [...await repo.getAll()]..sort((a, b) => a.deadline.compareTo(b.deadline));
-      emit(TaskLoaded(tasks));
-    } catch (e) {
-      emit(TaskError(e.toString()));
-    }
+    // Optimistically append new task (assumes id already set; else still safe for UI)
+    return _mutation(optimisticTransform: (list) => [...list, task], action: () => repo.create(task));
   }
 
   Future<void> updateTask(Task task) async {
-    final prev = state is TaskLoaded
-        ? (state as TaskLoaded).tasks
-        : state is TaskSubmitting
-        ? (state as TaskSubmitting).tasks
-        : <Task>[];
-    // optimistic local replace (sorted later after fetch)
-    final optimistic = [
-      for (final t in prev)
-        if (t.id == task.id) task else t,
-    ]..sort((a, b) => a.deadline.compareTo(b.deadline));
-    emit(TaskSubmitting(optimistic));
-    try {
-      // Assumes repo has an update(task) method; adjust if different.
-      await repo.update(task);
-      final tasks = [...await repo.getAll()]..sort((a, b) => a.deadline.compareTo(b.deadline));
-      emit(TaskLoaded(tasks));
-    } catch (e) {
-      emit(TaskError(e.toString()));
-    }
+    return _mutation(
+      optimisticTransform: (list) => [
+        for (final t in list)
+          if (t.id == task.id) task else t,
+      ],
+      action: () => repo.update(task),
+    );
   }
 
-  void printAll() {
-    final s = state;
-    if (s is TaskLoaded || s is TaskSubmitting) {
-      final list = s is TaskLoaded ? s.tasks : (s as TaskSubmitting).tasks;
-      debugPrint('--- Tasks (${list.length}) ---');
-      for (final t in list) {
-        debugPrint(
-          'id=${t.id} | title=${t.title} | status=${t.status} | desc=${t.description} | deadline=${t.deadline.toIso8601String()}',
-        );
-      }
-      debugPrint('------------------------');
-    } else {
-      debugPrint('No tasks to print (state=$s)');
-    }
-  }
-
-  void sortByDeadline({bool ascending = true}) {
-    // Retained for potential manual triggers elsewhere (now unused in screen)
-    final current = state;
-    if (current is TaskLoaded) {
-      final sorted = [...current.tasks]
-        ..sort((a, b) => ascending ? a.deadline.compareTo(b.deadline) : b.deadline.compareTo(a.deadline));
-      emit(TaskLoaded(sorted));
-    } else if (current is TaskSubmitting) {
-      final sorted = [...current.tasks]
-        ..sort((a, b) => ascending ? a.deadline.compareTo(b.deadline) : b.deadline.compareTo(a.deadline));
-      emit(TaskSubmitting(sorted));
-    }
+  Future<void> deleteTask(String id) async {
+    return _mutation(
+      optimisticTransform: (list) => [
+        for (final t in list)
+          if (t.id != id) t,
+      ],
+      action: () => repo.delete(id),
+    );
   }
 }
-
-// no-op for other states

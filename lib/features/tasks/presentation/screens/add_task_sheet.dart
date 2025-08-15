@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:task_manager/app/theme/app_colors.dart' as app_colors;
 import 'package:task_manager/features/tasks/presentation/cubit/task_cubit.dart';
 import 'package:task_manager/features/tasks/presentation/cubit/task_state.dart';
 import 'package:task_manager/features/tasks/data/model/task.dart';
+import 'package:task_manager/features/tasks/presentation/widgets/blue_text_field.dart'; // added
 
 class AddTaskSheet extends StatefulWidget {
   final Task? initialTask; // null => create
@@ -19,6 +21,7 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
   DateTime _deadline = DateTime.now();
   TaskStatus _status = TaskStatus.inProgress;
   bool _saving = false;
+  bool _deleting = false; // added
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
@@ -57,6 +60,7 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
       } else {
         await context.read<TaskCubit>().addTask(task);
       }
+      await context.read<TaskCubit>().loadTasks(); // added
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {
@@ -64,6 +68,40 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
       }
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _delete() async {
+    if (widget.initialTask == null) return;
+    final confirmed =
+        await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Delete Task'),
+            content: const Text('Are you sure you want to delete this task?'),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                style: TextButton.styleFrom(foregroundColor: app_colors.red1),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed) return;
+    setState(() => _deleting = true);
+    try {
+      await context.read<TaskCubit>().deleteTask(widget.initialTask!.id);
+      await context.read<TaskCubit>().loadTasks(); // added
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _deleting = false);
     }
   }
 
@@ -90,7 +128,9 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final submitting = context.watch<TaskCubit>().state is TaskSubmitting;
-    final disabled = _saving || submitting;
+    final disabled = _saving || submitting || _deleting;
+    final isEditing = widget.initialTask != null;
+    // removed local fieldBorder/focusedBorder/label styles (moved into reusable widget)
     return Material(
       color: theme.colorScheme.surface,
       elevation: 8,
@@ -109,22 +149,41 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
                   // margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(color: theme.dividerColor, borderRadius: BorderRadius.circular(3)),
                 ),
-                Text(widget.initialTask == null ? 'Add Task' : 'Edit Task', style: theme.textTheme.titleLarge),
+                Row(
+                  children: [
+                    Expanded(child: Text(isEditing ? 'Edit Task' : 'Add Task', style: theme.textTheme.titleLarge)),
+                    if (isEditing)
+                      ElevatedButton(
+                        onPressed: disabled ? null : _delete,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: app_colors.red1,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        ),
+                        child: _deleting
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Text('Delete Task', style: TextStyle(color: Colors.white)),
+                      ),
+                  ],
+                ),
                 const SizedBox(height: 16),
-                TextFormField(
+                BlueTextFormField(
                   controller: _titleCtrl,
-                  decoration: const InputDecoration(labelText: 'Title'),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  label: 'Title',
                   enabled: !disabled,
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
+                BlueTextFormField(
                   controller: _descCtrl,
-                  decoration: const InputDecoration(labelText: 'Description (optional)'),
-                  // maxLines: 2,
+                  label: 'Description (optional)',
                   enabled: !disabled,
+                  maxLines: 1,
                 ),
-                const SizedBox(height: 36),
+                const SizedBox(height: 24),
                 Row(
                   children: [
                     Expanded(
@@ -145,18 +204,23 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
                 Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: app_colors.gray2),
                         onPressed: disabled ? null : () => Navigator.of(context).maybePop(),
-                        child: const Text('Cancel'),
+                        child: const Text('Cancel', style: TextStyle(color: Colors.white)),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isEditing ? app_colors.orange1 : app_colors.blue1,
+                          foregroundColor: Colors.white,
+                        ),
                         onPressed: disabled ? null : _save,
                         child: disabled
                             ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                            : Text(widget.initialTask == null ? 'Save' : 'Update'),
+                            : Text(isEditing ? 'Update' : 'Save'),
                       ),
                     ),
                   ],

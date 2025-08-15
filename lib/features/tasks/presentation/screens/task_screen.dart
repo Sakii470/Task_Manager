@@ -10,6 +10,7 @@ import 'package:task_manager/features/tasks/presentation/cubit/task_state.dart'
     show TaskState, TaskLoading, TaskInitial, TaskError, TaskSubmitting, TaskLoaded;
 import 'package:task_manager/features/tasks/presentation/screens/add_task_sheet.dart';
 import 'package:task_manager/features/tasks/presentation/widgets/task_card.dart' show TaskCard;
+import 'package:task_manager/app/theme/app_colors.dart' as app_colors;
 
 class TaskScreen extends StatelessWidget {
   const TaskScreen({Key? key}) : super(key: key);
@@ -23,7 +24,14 @@ class TaskScreen extends StatelessWidget {
       builder: (ctx) => FractionallySizedBox(heightFactor: 0.75, child: AddTaskSheet(initialTask: task)),
     );
     if (saved == true && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(task == null ? 'Task added' : 'Task updated')));
+      context.read<TaskCubit>().loadTasks(); // Reload tasks after adding/updating
+      final isAdd = task == null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isAdd ? 'Task added' : 'Task updated'),
+          backgroundColor: isAdd ? Colors.green : app_colors.orange1,
+        ),
+      );
     }
   }
 
@@ -58,15 +66,7 @@ class TaskScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.max, // fill vertical
                       children: [
-                        Text(isSubmitting ? 'Saving task...' : 'Tasks loaded: ${tasks.length}'),
-                        const SizedBox(height: 12),
-                        ElevatedButton(
-                          onPressed: isSubmitting ? null : () => context.read<TaskCubit>().printAll(),
-                          child: const Text('Print All Tasks'),
-                        ),
-                        const SizedBox(height: 16),
                         Expanded(
-                          // replaces fixed SizedBox(height:360,width:300)
                           child: ListView.builder(
                             itemCount: tasks.length,
                             itemBuilder: (_, i) => TaskCard(
@@ -83,6 +83,7 @@ class TaskScreen extends StatelessWidget {
             ),
             floatingActionButton: FloatingActionButton(
               onPressed: () => _openAddTaskPopup(context),
+              backgroundColor: app_colors.blue1,
               child: const Icon(Icons.add),
             ),
           );
