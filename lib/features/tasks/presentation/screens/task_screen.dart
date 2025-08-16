@@ -45,10 +45,6 @@ class _TaskScreenState extends State<TaskScreen> {
     }
   }
 
-  void _sendNotification() {
-    NotiService().showNotification(title: 'Task Reminder', body: 'This is a reminder for your tasks!');
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocProvider<TaskCubit>(
