@@ -38,17 +38,51 @@ class TaskCubit extends Cubit<TaskState> {
       emit(TaskError(e.toString()));
     }
   }
-  // ---- End helpers ----
 
-  // helper to check if a DateTime is today (calendar date)
   bool _isToday(DateTime dt) {
     final now = DateTime.now();
     return dt.year == now.year && dt.month == now.month && dt.day == now.day;
   }
 
-  // run notifications only once per app session (first load)
-  // made static so it survives TaskCubit recreation during the same process
   static bool _startupNotificationSent = false;
+
+  String _formatDt(DateTime dt) {
+    final y = dt.year.toString().padLeft(4, '0');
+    final m = dt.month.toString().padLeft(2, '0');
+    final d = dt.day.toString().padLeft(2, '0');
+    final hh = dt.hour.toString().padLeft(2, '0');
+    final mm = dt.minute.toString().padLeft(2, '0');
+    return '$y-$m-$d $hh:$mm';
+  }
+
+  List<Task> _todaysUnfinishedTasks(Iterable<Task> tasks) {
+    return [
+      for (final t in tasks)
+        if (t.deadline != null && _isToday(t.deadline!) && t.completedDate == null) t,
+    ];
+  }
+
+  Future<void> _maybeSendStartupNotification(List<Task> sorted) async {
+    if (TaskCubit._startupNotificationSent) return;
+    TaskCubit._startupNotificationSent = true;
+
+    try {
+      final todays = _todaysUnfinishedTasks(sorted);
+      if (todays.isEmpty) return;
+
+      final buffer = StringBuffer();
+      for (var i = 0; i < todays.length; i++) {
+        final t = todays[i];
+        final dl = t.deadline!;
+        buffer.writeln('${i + 1}. Title: ${t.title ?? 'Untitled'} | Deadline: ${_formatDt(dl)}');
+      }
+
+      NotiService().showNotification(title: 'Tasks due today (${todays.length})', body: buffer.toString().trim());
+    } catch (_) {
+      // Ignore errors silently
+    }
+  }
+  // ---- End helpers ----
 
   Future<void> loadTasks() async {
     emit(const TaskLoading());
@@ -57,40 +91,8 @@ class TaskCubit extends Cubit<TaskState> {
       final sorted = _sorted(all);
       emit(TaskLoaded(sorted));
 
-      // run notifications only the first time loadTasks is called after app start
-      if (!TaskCubit._startupNotificationSent) {
-        TaskCubit._startupNotificationSent = true;
-        // After tasks are loaded, notify for tasks whose deadline is today
-        try {
-          // collect today's tasks (only unfinished ones)
-          final todays = [
-            for (final t in sorted)
-              if (t.deadline != null && _isToday(t.deadline) && t.completedDate == null) t,
-          ];
-
-          if (todays.isNotEmpty) {
-            String _formatDt(DateTime dt) {
-              final y = dt.year.toString().padLeft(4, '0');
-              final m = dt.month.toString().padLeft(2, '0');
-              final d = dt.day.toString().padLeft(2, '0');
-              final hh = dt.hour.toString().padLeft(2, '0');
-              final mm = dt.minute.toString().padLeft(2, '0');
-              return '$y-$m-$d $hh:$mm';
-            }
-
-            final buffer = StringBuffer();
-            for (var i = 0; i < todays.length; i++) {
-              final t = todays[i];
-              final dl = t.deadline!;
-              buffer.writeln('${i + 1}. Title: ${t.title ?? 'Untitled'} | Deadline: ${_formatDt(dl)}');
-            }
-
-            NotiService().showNotification(title: 'Tasks due today (${todays.length})', body: buffer.toString().trim());
-          }
-        } catch (_) {
-          // swallow notification errors so loadTasks doesn't fail
-        }
-      }
+      // simplified: delegate notification logic to helper
+      await _maybeSendStartupNotification(sorted);
     } catch (e) {
       emit(TaskError(e.toString()));
     }
