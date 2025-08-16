@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:task_manager/app/di/service_locator.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:task_manager/core/notifications/noti_service.dart';
 import 'package:task_manager/features/tasks/domain/task_repo.dart';
 import 'package:task_manager/features/tasks/presentation/cubit/task_cubit.dart';
 import 'package:task_manager/features/tasks/presentation/cubit/task_state.dart';
@@ -11,6 +12,7 @@ void main() async {
   GoRouter.optionURLReflectsImperativeAPIs = true;
   WidgetsFlutterBinding.ensureInitialized();
 
+  await NotiService().initNotification();
   await setupLocator();
 
   runApp(const MyApp());

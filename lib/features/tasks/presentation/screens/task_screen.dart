@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:task_manager/components/custom_header.dart';
 import 'package:task_manager/components/background_pattern.dart';
 import 'package:task_manager/app/di/service_locator.dart';
+import 'package:task_manager/core/notifications/noti_service.dart';
 import 'package:task_manager/features/tasks/data/model/task.dart';
 import 'package:task_manager/features/tasks/domain/task_repo.dart';
 import 'package:task_manager/features/tasks/presentation/cubit/task_cubit.dart';
@@ -44,6 +45,10 @@ class _TaskScreenState extends State<TaskScreen> {
     }
   }
 
+  void _sendNotification() {
+    NotiService().showNotification(title: 'Task Reminder', body: 'This is a reminder for your tasks!');
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider<TaskCubit>(
@@ -55,7 +60,6 @@ class _TaskScreenState extends State<TaskScreen> {
             appBar: const CustomHeader(title: 'Tasks', showBackArrow: false),
             body: BackgroundPattern(
               child: Padding(
-                // was Center(...)
                 padding: const EdgeInsets.all(16),
                 child: BlocBuilder<TaskCubit, TaskState>(
                   builder: (context, state) {
