@@ -56,7 +56,7 @@ class _TaskScreenState extends State<TaskScreen> {
             appBar: const CustomHeader(title: 'Tasks', showBackArrow: false),
             body: BackgroundPattern(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.only(left: 16, right: 16),
                 child: BlocBuilder<TaskCubit, TaskState>(
                   builder: (context, state) {
                     if (state is TaskLoading || state is TaskInitial) {
