@@ -6,22 +6,21 @@ import 'package:task_manager/components/background_pattern.dart';
 import 'package:task_manager/features/statistics/presentation/widgets/stat_card.dart';
 import 'package:task_manager/features/statistics/presentation/cubit/statisctics_cubit.dart';
 import 'package:task_manager/features/tasks/domain/task_repo.dart';
-import 'package:task_manager/features/tasks/data/model/task.dart'; // added
-import 'package:task_manager/features/statistics/presentation/widgets/week_bar_chart.dart'; // added
-import 'package:task_manager/app/theme/app_colors.dart' as app_colors; // added
+import 'package:task_manager/features/tasks/data/model/task.dart';
+import 'package:task_manager/features/statistics/presentation/widgets/week_bar_chart.dart';
+import 'package:task_manager/app/theme/app_colors.dart' as app_colors;
 
 class StatisticsScreen extends StatelessWidget {
   const StatisticsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // resolve concrete repo from GetIt if not provided
     final taskRepo = GetIt.instance<HiveTaskRepo>();
 
     return BlocProvider(
       create: (_) => StatiscticsCubit(taskRepo)..loadStatistics(),
       child: Scaffold(
-        appBar: const CustomHeader(title: 'Statistics', showBackArrow: false),
+        appBar: const CustomHeader(title: 'Statistics'),
         body: BackgroundPattern(
           showBottomLinearGradient: true,
           child: Padding(
@@ -42,7 +41,6 @@ class StatisticsScreen extends StatelessWidget {
                     children: [
                       StatCard(title: 'Completed Tasks', value: '${state.completed}'),
                       const SizedBox(height: 12),
-                      // New: weekly completed tasks bar chart below the completed card
                       FutureBuilder<List<Task>>(
                         future: taskRepo.getAll(includeCompleted: true),
                         builder: (context, snap) {
@@ -61,7 +59,6 @@ class StatisticsScreen extends StatelessWidget {
                     ],
                   );
                 }
-                // fallback
                 return const SizedBox.shrink();
               },
             ),

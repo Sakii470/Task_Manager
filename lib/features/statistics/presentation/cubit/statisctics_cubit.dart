@@ -14,14 +14,12 @@ class StatiscticsCubit extends Cubit<StatiscticsState> {
     emit(StatiscticsLoading());
     try {
       final tasks = await _safeGetTasks();
-      final total = tasks.length;
       int completed = 0;
       for (final t in tasks) {
         if (_isTaskCompleted(t)) completed++;
       }
-      final pending = (total - completed);
-      final rate = total == 0 ? 0.0 : (completed / total) * 100.0;
-      emit(StatiscticsLoaded(completed: completed, pending: pending, completionRate: rate));
+
+      emit(StatiscticsLoaded(completed: completed));
     } catch (e) {
       emit(StatiscticsError(e?.toString() ?? 'Unknown error'));
     }

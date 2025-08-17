@@ -13,10 +13,8 @@ final class StatiscticsLoading extends StatiscticsState {
 
 final class StatiscticsLoaded extends StatiscticsState {
   final int completed;
-  final int pending;
-  final double completionRate;
 
-  StatiscticsLoaded({required this.completed, required this.pending, required this.completionRate});
+  StatiscticsLoaded({required this.completed});
 }
 
 final class StatiscticsError extends StatiscticsState {

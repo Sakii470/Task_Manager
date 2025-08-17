@@ -9,8 +9,6 @@ Future<void> setupLocator() async {
     final repo = HiveTaskRepository();
     await repo.init();
 
-    getIt
-      ..registerSingleton<HiveTaskRepository>(repo)
-      ..registerSingleton<HiveTaskRepo>(repo);
+    getIt..registerSingleton<HiveTaskRepo>(repo);
   }
 }

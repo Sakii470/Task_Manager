@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:permission_handler/permission_handler.dart' as permission_handler;
 
 class NotiService {
   NotiService._internal();
@@ -19,9 +19,9 @@ class NotiService {
 
     try {
       if (defaultTargetPlatform == TargetPlatform.android) {
-        final status = await Permission.notification.status;
+        final status = await permission_handler.Permission.notification.status;
         if (!status.isGranted) {
-          await Permission.notification.request();
+          await permission_handler.Permission.notification.request();
         }
       }
     } catch (e) {

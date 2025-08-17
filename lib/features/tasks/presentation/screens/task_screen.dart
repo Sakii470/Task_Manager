@@ -34,7 +34,7 @@ class _TaskScreenState extends State<TaskScreen> {
       builder: (ctx) => FractionallySizedBox(heightFactor: 0.75, child: AddTaskSheet(initialTask: task)),
     );
     if (saved == true && context.mounted) {
-      context.read<TaskCubit>().loadTasks(); // Reload tasks after adding/updating
+      context.read<TaskCubit>().loadTasks();
       final isAdd = task == null;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -49,11 +49,10 @@ class _TaskScreenState extends State<TaskScreen> {
   Widget build(BuildContext context) {
     return BlocProvider<TaskCubit>(
       create: (_) => TaskCubit(getIt.isRegistered<HiveTaskRepo>() ? getIt<HiveTaskRepo>() : getIt())..loadTasks(),
-      // Using Builder to access provided cubit context
       child: Builder(
         builder: (context) {
           return Scaffold(
-            appBar: const CustomHeader(title: 'Tasks', showBackArrow: false),
+            appBar: const CustomHeader(title: 'Tasks'),
             body: BackgroundPattern(
               child: Padding(
                 padding: const EdgeInsets.only(left: 16, right: 16),
@@ -65,7 +64,6 @@ class _TaskScreenState extends State<TaskScreen> {
                     if (state is TaskError) {
                       return Text('Error: ${state.message}');
                     }
-                    final isSubmitting = state is TaskSubmitting;
                     final tasks = state is TaskLoaded
                         ? state.tasks
                         : state is TaskSubmitting
@@ -75,7 +73,7 @@ class _TaskScreenState extends State<TaskScreen> {
                     // Split tasks into active and done (tolerant check so enum or string works)
                     final doneTasks =
                         tasks.where((t) {
-                            final s = t.status?.toString().toLowerCase() ?? '';
+                            final s = t.status.toString().toLowerCase();
                             return s.contains('completed');
                           }).toList()
                           // sort by completedDate desc (tasks completed most recently appear first)
@@ -83,9 +81,9 @@ class _TaskScreenState extends State<TaskScreen> {
                             final ad = a.completedDate;
                             final bd = b.completedDate;
                             if (ad == null && bd == null) return 0;
-                            if (ad == null) return 1; // push nulls to the end
+                            if (ad == null) return 1;
                             if (bd == null) return -1;
-                            return bd.compareTo(ad); // newer (closer to now) first
+                            return bd.compareTo(ad);
                           });
                     final activeTasks = tasks.where((t) {
                       final s = t.status?.toString().toLowerCase() ?? '';
@@ -126,7 +124,6 @@ class _TaskScreenState extends State<TaskScreen> {
                                   itemBuilder: (t) => TaskCard(
                                     task: t,
                                     onEdit: () => _openAddTaskPopup(context, task: t),
-                                    //onMarkDone: null,
                                   ),
                                 ),
                                 const SizedBox(height: 24),

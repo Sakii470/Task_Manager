@@ -32,7 +32,6 @@ class TaskCubit extends Cubit<TaskState> {
     emit(TaskSubmitting(optimistic));
     try {
       await action();
-      // Always refetch for canonical state (keeps logic simple; can be optimized later)
       emit(TaskLoaded(_sorted(await repo.getAll())));
     } catch (e) {
       emit(TaskError(e.toString()));
@@ -58,7 +57,7 @@ class TaskCubit extends Cubit<TaskState> {
   List<Task> _todaysUnfinishedTasks(Iterable<Task> tasks) {
     return [
       for (final t in tasks)
-        if (t.deadline != null && _isToday(t.deadline!) && t.completedDate == null) t,
+        if (_isToday(t.deadline) && t.completedDate == null) t,
     ];
   }
 

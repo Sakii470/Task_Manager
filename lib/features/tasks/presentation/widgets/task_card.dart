@@ -27,7 +27,7 @@ class TaskCard extends StatelessWidget {
 
   Color _deadlineLabelColor(DateTime deadline) {
     final days = _daysToDeadline(deadline);
-    if (days == 0) return app_colors.red1;
+    if (days <= 0) return app_colors.red1;
     if (days > 0 && days <= 3) return app_colors.orange1;
     return app_colors.blue1;
   }
@@ -85,7 +85,7 @@ class TaskCard extends StatelessWidget {
           ),
           // Body
           Padding(
-            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12, top: 18), // adjusted padding
+            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12, top: 18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -104,7 +104,7 @@ class TaskCard extends StatelessWidget {
                     if (task.completedDate == null) ...[
                       const SizedBox(width: 24),
                       Padding(
-                        padding: const EdgeInsets.only(top: 0), // nudge button up/down as needed
+                        padding: const EdgeInsets.only(top: 0),
                         child: TaskDoneButton(onPressed: () => context.read<TaskCubit>().markTaskDone(task)),
                       ),
                     ],

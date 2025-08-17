@@ -4,7 +4,7 @@ import 'package:task_manager/app/theme/app_colors.dart' as app_colors;
 import 'package:task_manager/features/tasks/presentation/cubit/task_cubit.dart';
 import 'package:task_manager/features/tasks/presentation/cubit/task_state.dart';
 import 'package:task_manager/features/tasks/data/model/task.dart';
-import 'package:task_manager/features/tasks/presentation/widgets/blue_text_field.dart'; // added
+import 'package:task_manager/features/tasks/presentation/widgets/custom_text_field.dart'; // added
 
 class AddTaskSheet extends StatefulWidget {
   final Task? initialTask; // null => create
@@ -94,7 +94,7 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
     setState(() => _deleting = true);
     try {
       await context.read<TaskCubit>().deleteTask(widget.initialTask!.id);
-      await context.read<TaskCubit>().loadTasks(); // added
+      await context.read<TaskCubit>().loadTasks();
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {
@@ -130,7 +130,6 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
     final submitting = context.watch<TaskCubit>().state is TaskSubmitting;
     final disabled = _saving || submitting || _deleting;
     final isEditing = widget.initialTask != null;
-    // removed local fieldBorder/focusedBorder/label styles (moved into reusable widget)
     return Material(
       color: app_colors.white,
       elevation: 8,
@@ -146,7 +145,6 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
                 Container(
                   width: 48,
                   height: 5,
-                  // margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(color: theme.dividerColor, borderRadius: BorderRadius.circular(3)),
                 ),
                 Row(
